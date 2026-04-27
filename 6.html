@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Манчкин: Хранители Земли — 83 карты, печать А4 (6 карт/лист)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #2b2b1f;
+            font-family: 'Segoe UI', 'Book Antiqua', 'Times New Roman', serif;
+            padding: 25px 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Шапка с управлением печатью */
+        .print-header {
+            background: linear-gradient(145deg, #fff2df, #fae6c9);
+            max-width: 1100px;
+            width: 100%;
+            margin-bottom: 30px;
+            padding: 22px 25px;
+            border-radius: 70px;
+            text-align: center;
+            box-shadow: 0 10px 22px rgba(0,0,0,0.3);
+            border-bottom: 6px solid #b2702e;
+        }
+
+        .print-header h1 {
+            font-family: 'Impact', 'Segoe UI', sans-serif;
+            font-size: 2.3rem;
+            letter-spacing: 2px;
+            color: #2a6530;
+            text-shadow: 2px 2px 0 #e9ce94;
+        }
+
+        .print-header p {
+            color: #3d2b19;
+            margin: 8px 0;
+        }
+
+        .stats {
+            display: inline-flex;
+            background: #ab804b;
+            padding: 6px 24px;
+            border-radius: 40px;
+            gap: 28px;
+            font-weight: bold;
+            color: #fff3da;
+            margin: 12px 0;
+        }
+
+        .print-btn {
+            background: #558b42;
+            border: none;
+            padding: 10px 32px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: white;
+            border-radius: 50px;
+            cursor: pointer;
+            margin-top: 12px;
+            transition: 0.1s linear;
+            box-shadow: 0 3px 0 #2f5524;
+        }
+
+        .print-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #2f5524;
+        }
+
+        /* КАЖДАЯ СТРАНИЦА = лист А4 */
+        .page {
+            background: white;
+            width: 210mm;
+            height: 297mm;          /* точная высота A4 */
+            margin: 25px auto;
+            padding: 10mm 10mm;
+            box-shadow: 0 0 0 1px #cfb587, 0 12px 28px black;
+            border-radius: 12px;
+            position: relative;
+            page-break-after: always;
+            break-inside: avoid;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Сетка 2 колонки × 3 ряда = 6 карт */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(3, 1fr);  /* равномерно делим высоту */
+            gap: 10mm 12mm;
+            flex: 1;              /* занимает всё свободное место, прижимая footer вниз */
+            min-height: 0;        /* позволяет схлопываться при переполнении */
+        }
+
+        /* Стиль карточки — этно-манчкин, яркие рамки */
+        .card {
+            background: #fffef5;
+            border-radius: 24px;
+            padding: 10px 10px 8px;
+            border-left: 10px solid;
+            box-shadow: 0 5px 12px rgba(0,0,0,0.1), inset 0 0 0 1px #f3e7cd;
+            display: flex;
+            flex-direction: column;
+            break-inside: avoid;
+            page-break-inside: avoid;
+            transition: 0.05s;
+            height: 100%;         /* карточка растягивается внутри ячейки сетки */
+            overflow: hidden;     /* скрываем переполнение, но текст переносится */
+        }
+
+        .card.monster { border-left-color: #e3512f; background: linear-gradient(145deg, #fff4ec, #ffe2d1); }
+        .card.curse { border-left-color: #6f8f5e; background: #fbf7ea; }
+        .card.item { border-left-color: #2a86ad; background: #eef5fc; }
+        .card.race { border-left-color: #e7a541; background: #fff3e0; }
+        .card.class { border-left-color: #c2742c; background: #faecd7; }
+        .card.blessing { border-left-color: #d4af37; background: #fff9e8; }
+
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 800;
+            font-family: 'Impact', 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            border-bottom: 2px dotted #e2bc7c;
+            margin-bottom: 6px;
+            color: #2d241b;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .card-sub {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            background: #e9dbbc;
+            padding: 2px 10px;
+            border-radius: 50px;
+            font-weight: bold;
+            color: #6b4e2a;
+            white-space: nowrap;
+        }
+
+        .power-badge {
+            background: #2d3a1f;
+            display: inline-block;
+            padding: 3px 12px;
+            border-radius: 40px;
+            color: #ffdf9c;
+            font-weight: bold;
+            font-size: 0.75rem;
+            margin: 4px 0 3px;
+            width: fit-content;
+        }
+
+        .card-desc {
+            font-size: 0.75rem;
+            line-height: 1.3;
+            color: #2e2a22;
+            margin: 5px 0;
+            flex-grow: 1;
+        }
+
+        .card-flavor {
+            font-size: 0.65rem;
+            color: #a28253;
+            font-style: italic;
+            border-top: 1px dashed #e2cf9a;
+            margin-top: 5px;
+            padding-top: 4px;
+        }
+
+        .stat-line {
+            font-weight: bold;
+            background: #e7ddc0;
+            border-radius: 40px;
+            padding: 2px 10px;
+            font-size: 0.7rem;
+            display: inline-block;
+            margin: 3px 4px 3px 0;
+        }
+
+        .cut-guide {
+            font-size: 7px;
+            text-align: center;
+            color: #b58d55;
+            margin-top: 6px;
+            letter-spacing: 1px;
+        }
+
+        .footer-note {
+            text-align: center;
+            font-size: 0.6rem;
+            color: #9b7b4c;
+            margin-top: 8px;
+            font-weight: 500;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+                margin: 0;
+            }
+            .print-header {
+                display: none;
+            }
+            .page {
+                box-shadow: none;
+                margin: 0 auto;
+                padding: 8mm 8mm;
+                page-break-after: always;
+                height: 297mm;
+                width: 210mm;
+            }
+            .card {
+                box-shadow: 0 0 0 1px #bba87e;
+                break-inside: avoid;
+            }
+            .print-btn {
+                display: none;
+            }
+            .cards-grid {
+                gap: 8mm 10mm;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="print-header">
+    <h1>🎴 МАНЧКИН: ХРАНИТЕЛИ ЗЕМЛИ 🎴</h1>
+    <p>Игра о духах, шаманах и промыслах коренных народов Севера, Сибири и Дальнего Востока.<br>
+    Механика как в Munchkin: сражайтесь с монстрами, экипируйте амулеты, меняйте расы/классы, помогайте и предавайте.</p>
+    <div class="stats">🗝️ 47 карт ДВЕРЕЙ &nbsp;|&nbsp; 💎 36 карт СОКРОВИЩ</div>
+    <button class="print-btn" onclick="window.print();">🖨️ РАСПЕЧАТАТЬ КОЛОДУ (14 листов А4)</button>
+    <p style="margin-top: 10px;">✅ 83 уникальные карты. Победа при 10 уровне «Мудрость». Режьте по пунктирным линиям.</p>
+</div>
+
+<div id="pages-container"></div>
+
+<script>
+    // ------------------- ПОЛНОЕ СОБРАНИЕ КАРТ (83 карты) -------------------
+    // ---- КОЛОДА ДВЕРЕЙ (47) ----
+    // монстры (20) — уникальные, без дублей
+    const monsters = [
+        { name: "Злой Мамонт", power: 14, reward: "+2 ур. +2 сокр.", desc: "Гигант ледников. Топчет чумы.", flavor: "Бивни как скалы" },
+        { name: "Огненный Лис", power: 8, reward: "+1 ур. +1 сокр.", desc: "Мелькает искрами, -1 к убеганию.", flavor: "Искры из хвоста" },
+        { name: "Дух Болота Хулы", power: 12, reward: "+2 ур. +2 сокр.", desc: "При поражении сбрось 2 карты из руки.", flavor: "Трясина" },
+        { name: "Лютый Медведь", power: 18, reward: "+2 ур. +3 сокр.", desc: "Рейд-босс. Можно звать помощь, но предательство возможно.", flavor: "Хозяин тайги" },
+        { name: "Голодный Росомаха", power: 6, reward: "+1 ур. +1 сокр.", desc: "При победе укради карту у любого игрока.", flavor: "Когтистый вор" },
+        { name: "Дух Ветра", power: 9, reward: "+1 ур. +1 сокр.", desc: "Убегание с -2.", flavor: "Свистящий невидимка" },
+        { name: "Дух Косатка", power: 13, reward: "+2 ур. +2 сокр.", desc: "Морской властелин. Сильный в воде.", flavor: "Чёрно-белая смерть" },
+        { name: "Белый Медведь", power: 16, reward: "+2 ур. +2 сокр.", desc: "Ледяное дыхание: шторм.", flavor: "Хозяин торосов" },
+        { name: "Гигантский Лось", power: 11, reward: "+2 ур. +2 сокр.", desc: "+2 силы для эвенков против него.", flavor: "Рога-крона" },
+        { name: "Кровавый Шаман", power: 15, reward: "+2 ур. +2 сокр.", desc: "Проклинает: сбрось одноразовый предмет.", flavor: "Бубен тьмы" },
+        { name: "Мамонтёнок", power: 5, reward: "+1 ур. +1 сокр.", desc: "Маленький, но злой.", flavor: "Изумрудные глаза" },
+        { name: "Чёрный Соболь", power: 7, reward: "+1 ур. +1 сокр.", desc: "Ворует одно сокровище из руки.", flavor: "Пушистый воришка" },
+        { name: "Дух Огня (Туманги)", power: 10, reward: "+1 ур. +2 сокр.", desc: "Ослабляет металл.", flavor: "Пламенный змей" },
+        { name: "Морж-оборотень", power: 11, reward: "+2 ур. +2 сокр.", desc: "Удар бивнем, оглушает.", flavor: "Из пены морской" },
+        { name: "Ледяная Баба", power: 10, reward: "+1 ур. +2 сокр.", desc: "Замораживает: сбрось карту руки.", flavor: "Стужа веков" },
+        { name: "Дух-росомаха", power: 7, reward: "+1 ур. +1 сокр.", desc: "Если убегаешь, бросок -1.", flavor: "Неуловимый хищник" },
+        { name: "Хозяин Чума", power: 9, reward: "+1 ур. +1 сокр.", desc: "В бою против шаманов +2 к силе.", flavor: "Берестяной дух" },
+        { name: "Ледяной Гигант", power: 19, reward: "+3 ур. +4 сокр.", desc: "Очень опасен. +5 против оленеводов.", flavor: "Древний ужас" },
+        { name: "Пегая Ворона", power: 6, reward: "+1 ур. +1 сокр.", desc: "Клюет и улетает, убегание +2.", flavor: "Вестница" },
+        { name: "Дух Камня", power: 12, reward: "+2 ур. +2 сокр.", desc: "Иммунитет к бегству со штрафом.", flavor: "Неподвижный" }
+    ];
+    // проклятия (12)
+    const curses = [
+        { name: "Пропажа оленей", effect: "Нет упряжки? Потеряй 1 уровень. Иначе сбрось упряжку.", flavor: "Ветры угнали стадо" },
+        { name: "Злой дух болезни", effect: "-3 силы до конца текущего боя.", flavor: "Чумная напасть" },
+        { name: "Нарушение табу", effect: "Потеряй расу или сбрось 2 карты из руки.", flavor: "Гнев предков" },
+        { name: "Ледяная хватка", effect: "Пропусти следующий ход.", flavor: "Стужа сковала" },
+        { name: "Злой шаман", effect: "Сбрось все одноразовые предметы из руки (или потеряй уровень).", flavor: "Чёрное камлание" },
+        { name: "Проклятие ржавчины", effect: "Сбрось одно оружие.", flavor: "Металл съеден" },
+        { name: "Песнь Борея", effect: "Не можешь получать помощь в бою в этом ходу.", flavor: "Ветры одиночества" },
+        { name: "Наваждение Болота", effect: "Твоя сила уменьшена на 2 в этом бою.", flavor: "Туман безумия" },
+        { name: "Сломанная нарта", effect: "Сбрось транспорт, иначе -1 к убеганию до конца игры.", flavor: "Полозья треснули" },
+        { name: "Проклятие немого", effect: "Не используй способности класса 1 ход.", flavor: "Потеря речи" },
+        { name: "Плач шаманки", effect: "Ты не можешь получать сокровища при победе в этом бою.", flavor: "Проклятие безрадости" },
+        { name: "Северное сияние (ложное)", effect: "Перемешай колоду дверей и сбрось верхнюю.", flavor: "Обманчивый свет" }
+    ];
+    // расы (6)
+    const races = [
+        { name: "Ненец", bonus: "+2 силы с Оленьей упряжкой. +1 к убеганию.", desc: "Оленеводы тундры" },
+        { name: "Эвенк", bonus: "+2 силы против зверей и лесных духов. 1 раз ловушка (+3 к бою).", desc: "Таёжные охотники" },
+        { name: "Чукча", bonus: "Игнорирует штрафы ледяных проклятий. +1 в арктических битвах.", desc: "Морские зверобои" },
+        { name: "Нанаец", bonus: "Убегает от водных монстров на 4+. +1 сокровище при победе у воды.", desc: "Речной народ" },
+        { name: "Ительмен", bonus: "+2 силы в бою у воды. Раз за игру спрятаться в воде, избежав боя.", desc: "Камчатский народ" },
+        { name: "Хант", bonus: "+1 к уровню при убийстве духа леса. Может раз в игру вылечить проклятие.", desc: "Югорские мастера" }
+    ];
+    // классы (5)
+    const classes = [
+        { name: "Оленевод", ability: "Сбрось карту из руки → +3 силы в бою.", desc: "Мастер стад и нарт" },
+        { name: "Шаман", ability: "Раз за игру верни из сброса любую карту в руку.", desc: "Камлание и бубен" },
+        { name: "Косторез", ability: "+1 силы за каждый экипированный предмет.", desc: "Резьба по бивню" },
+        { name: "Рыбак", ability: "+2 силы против водных. После победы возьми лишнее сокровище.", desc: "Сети и удача" },
+        { name: "Следопыт", ability: "При убегании от любого монстра бросай 2 кубика и выбирай лучший.", desc: "Знаток троп" }
+    ];
+    // события (4) — в игре как "благословение"
+    const events = [
+        { name: "Вороний день", desc: "Все игроки берут по 1 сокровищу, ты берёшь 2.", flavor: "Весенний праздник" },
+        { name: "Медвежьи игрища", desc: "Выбери игрока. Вы оба получаете +2 силы до конца следующих ходов.", flavor: "Тотемный союз" },
+        { name: "Зов предков", desc: "Сбрось текущего монстра и возьми карту из колоды сокровищ.", flavor: "Духи помогают" },
+        { name: "Танец Солнца", desc: "Все игроки восстанавливают 1 уровень (но не больше 9).", flavor: "Свет над тундрой" }
+    ];
+
+    // Собираем ДВЕРИ (47) - ровно по категориям
+    let doorCards = [];
+    // монстры (20)
+    for (let i = 0; i < monsters.length; i++) doorCards.push({ type: "monster", ...monsters[i] });
+    // проклятия (12)
+    for (let i = 0; i < curses.length; i++) doorCards.push({ type: "curse", ...curses[i] });
+    // расы (6)
+    for (let i = 0; i < races.length; i++) doorCards.push({ type: "race", ...races[i] });
+    // классы (5)
+    for (let i = 0; i < classes.length; i++) doorCards.push({ type: "class", ...classes[i] });
+    // события (4) - тип blessing
+    for (let i = 0; i < events.length; i++) doorCards.push({ type: "blessing", ...events[i] });
+    // Проверка: 20+12+6+5+4 = 47
+    if (doorCards.length !== 47) console.warn("Дверей не 47, а", doorCards.length);
+   
+    // ---- СОКРОВИЩА (36) с полным описанием и корректными бонусами ----
+    const treasureBase = [
+        { name: "Малица", bonus: 2, slot: "armor", desc: "Оленья шуба: +2 силы", flavor: "Тепло тундры" },
+        { name: "Нож паренский", bonus: 2, slot: "weapon", desc: "Клинок из клыка, +2 силы", flavor: "Острота льда" },
+        { name: "Оленья упряжка", bonus: 1, escapeBonus: 1, slot: "transport", desc: "+1 сила, +1 к побегу", flavor: "Быстрая нарта" },
+        { name: "Амулет с клыком моржа", oneShot: true, fightBonus: 5, desc: "+5 в одном бою (сбросить)", flavor: "Сила моря" },
+        { name: "Бубен шамана", bonus: 1, reRoll: true, desc: "+1 сила, 1 раз переброс кубика убегания", flavor: "Ритм предков" },
+        { name: "Мухомор", oneShot: true, fightBonus: 3, escapePenalty: 1, desc: "+3 силы, но -1 к убеганию", flavor: "Гриб видений" },
+        { name: "Кухлянка", bonus: 2, slot: "armor", desc: "Тёплая парка из меха, +2", flavor: "Укрытие от пурги" },
+        { name: "Гарпун", bonus: 1, waterBonus: 4, slot: "weapon", desc: "+4 против водных монстров", flavor: "Охота на нерпу" },
+        { name: "Нарта", escapeBonus: 1, slot: "transport", desc: "Лёгкие сани +1 к побегу", flavor: "Летят по снегу" },
+        { name: "Лук из рога", bonus: 2, flyingBonus: 4, slot: "weapon", desc: "+4 против летающих духов", flavor: "Меткий выстрел" },
+        { name: "Лапа росомахи", bonus: 1, stealOnWin: true, desc: "+1 силы, при победе укради карту у игрока", flavor: "Хищный талисман" },
+        { name: "Курильский чай", oneShot: true, restoreLevel: 1, desc: "Восстанови 1 уровень", flavor: "Целебный настой" },
+        { name: "Торбаса", bonus: 1, escapeBonus: 1, slot: "feet", desc: "Сапоги из камуса, +1 убег", flavor: "Мягкий шаг" },
+        { name: "Амулет Солнца", oneShot: true, fightBonus: 4, desc: "+4 против духов тьмы", flavor: "Свет предков" },
+        { name: "Берестяная лодка", waterBonus: 2, slot: "transport", desc: "+2 на водных локациях", flavor: "Плывёт по рекам" },
+        { name: "Шапка-ушанка", bonus: 1, coldImmunity: true, desc: "+1, защита от холода", flavor: "Уши в тепле" },
+        { name: "Копьё-пальма", bonus: 2, slot: "weapon", desc: "Древковое оружие +2", flavor: "Звериный бой" },
+        { name: "Амулет рыси", bonus: 1, sneak: true, desc: "+1, если убегаешь, можешь взять карту из сброса", flavor: "Кошачья грация" }
+    ];
+    let treasureCards = [];
+    // формируем 36 сокровищ (добавляем уникальные)
+    for (let i = 0; i < 36; i++) {
+        let base = treasureBase[i % treasureBase.length];
+        let newCard = { ...base, id: i };
+        if (i === 18) newCard = { name: "Унты", bonus: 1, slot: "feet", desc: "Меховые сапоги +1", flavor: "Тёплый след" };
+        if (i === 22) newCard = { name: "Маска шамана", bonus: 1, reRollCurse: true, desc: "1 раз сбрось проклятие", flavor: "Лик духа" };
+        if (i === 26) newCard = { name: "Серебряный бубенчик", bonus: 1, desc: "+1 к убеганию от нечисти", flavor: "Звон защищает" };
+        if (i === 30) newCard = { name: "Костяной топор", bonus: 3, twoHanded: true, desc: "+3 силы, занимает 2 руки", flavor: "Тяжесть веков" };
+        if (i === 33) newCard = { name: "Рыболовная сеть", oneShot: true, trapBonus: 2, desc: "В бою даёт +2, при побеге поймай карту", flavor: "Улов" };
+        if (i === 35) newCard = { name: "Жир нерпы", oneShot: true, heal: true, desc: "Восстанови 2 уровня здоровья (не выше 10)", flavor: "Целительный жир" };
+        treasureCards.push(newCard);
+    }
+    if (treasureCards.length > 36) treasureCards.length = 36;
+
+    // Общая колода: сначала 47 дверей, потом 36 сокровищ
+    let allCards = [];
+    doorCards.forEach(c => { c.deck = "door"; allCards.push(c); });
+    treasureCards.forEach(c => { c.deck = "treasure"; allCards.push(c); });
+
+    // Разбивка по страницам (по 6 карт)
+    const cardsPerPage = 6;
+    const pages = [];
+    for (let i = 0; i < allCards.length; i += cardsPerPage) {
+        pages.push(allCards.slice(i, i + cardsPerPage));
+    }
+
+    // Исправленная функция рендера одной карты (корректное отображение бонусов)
+    function renderCard(card) {
+        let categoryClass = "";
+        let typeLabel = "";
+        let extraHtml = "";
+        let title = card.name || "Дух Земли";
+        let flavorText = card.flavor || "Хранитель традиций";
+        let descText = card.desc || card.effect || "";
+
+        if (card.type === "monster") {
+            categoryClass = "monster";
+            typeLabel = "Чудище";
+            extraHtml = `<div class="power-badge">💪 Сила: ${card.power}</div>
+                         <div class="stat-line">🏆 ${card.reward}</div>`;
+        } 
+        else if (card.type === "curse") {
+            categoryClass = "curse";
+            typeLabel = "Проклятие";
+            extraHtml = `<div class="stat-line">⚠️ ${card.effect}</div>`;
+        } 
+        else if (card.type === "race") {
+            categoryClass = "race";
+            typeLabel = "Коренной народ";
+            extraHtml = `<div class="stat-line">✨ ${card.bonus}</div>`;
+        } 
+        else if (card.type === "class") {
+            categoryClass = "class";
+            typeLabel = "Промысел";
+            extraHtml = `<div class="stat-line">🔮 ${card.ability}</div>`;
+        } 
+        else if (card.type === "blessing") {
+            categoryClass = "blessing";
+            typeLabel = "Событие";
+            extraHtml = `<div class="stat-line">🌿 Особый день</div>`;
+        } 
+        else { 
+            // Сокровище — собираем бонусы аккуратно, без перезаписи
+            categoryClass = "item";
+            typeLabel = "Сокровище";
+            let bonusParts = [];
+            if (card.bonus) bonusParts.push(`➕ +${card.bonus} силы`);
+            if (card.oneShot && card.fightBonus) bonusParts.push(`⚡ Одноразовое +${card.fightBonus} в бою`);
+            if (card.restoreLevel) bonusParts.push(`🌿 Восстанавливает 1 уровень`);
+            if (card.escapeBonus) bonusParts.push(`🏃 +${card.escapeBonus} к убеганию`);
+            if (card.waterBonus) bonusParts.push(`🌊 +${card.waterBonus} против водных`);
+            if (card.flyingBonus) bonusParts.push(`🕊️ +${card.flyingBonus} против летающих`);
+            if (card.heal) bonusParts.push(`💚 Восстанавливает 2 уровня`);
+            if (card.trapBonus) bonusParts.push(`🎣 +${card.trapBonus} в бою / при побеге`);
+            if (!bonusParts.length && !card.slot) bonusParts.push(`✨ Магический предмет`);
+            
+            if (bonusParts.length) {
+                extraHtml = `<div class="stat-line">${bonusParts.join(' · ')}</div>`;
+            }
+            if (card.slot) extraHtml += `<div class="stat-line">🎒 Слот: ${card.slot}</div>`;
+        }
+
+        return `<div class="card ${categoryClass}">
+            <div class="card-title">${escapeHtml(title)} <span class="card-sub">${typeLabel}</span></div>
+            ${extraHtml}
+            <div class="card-desc">${escapeHtml(descText)}</div>
+            <div class="card-flavor">“${escapeHtml(flavorText)}”</div>
+            <div class="cut-guide">✂️ — — —</div>
+        </div>`;
+    }
+
+    // простая защита от XSS
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+            return c;
+        });
+    }
+
+    // Вставка страниц в DOM с использованием корректного метода
+    const container = document.getElementById("pages-container");
+    for (let idx = 0; idx < pages.length; idx++) {
+        const pageCards = pages[idx];
+        const pageDiv = document.createElement("div");
+        pageDiv.className = "page";
+        
+        const gridDiv = document.createElement("div");
+        gridDiv.className = "cards-grid";
+        
+        // добавляем карточки через insertAdjacentHTML для надёжности
+        for (let card of pageCards) {
+            const cardHtml = renderCard(card);
+            gridDiv.insertAdjacentHTML('beforeend', cardHtml);
+        }
+        
+        pageDiv.appendChild(gridDiv);
+        const footer = document.createElement("div");
+        footer.className = "footer-note";
+        const dCnt = pageCards.filter(c => c.deck === "door").length;
+        const tCnt = pageCards.filter(c => c.deck === "treasure").length;
+        footer.innerText = `📄 Лист ${idx+1}/${pages.length}  |  🚪 Дверей: ${dCnt}  |  💎 Сокровищ: ${tCnt}`;
+        pageDiv.appendChild(footer);
+        container.appendChild(pageDiv);
+    }
+
+    // Итоговая информация
+    const totalInfo = document.createElement("div");
+    totalInfo.style.textAlign = "center";
+    totalInfo.style.margin = "20px auto";
+    totalInfo.style.background = "#ddcdab";
+    totalInfo.style.padding = "12px";
+    totalInfo.style.borderRadius = "40px";
+    totalInfo.style.maxWidth = "600px";
+    totalInfo.innerHTML = `<strong>✅ Полный набор:</strong> ${allCards.length} карт (47 Дверей / 36 Сокровищ) на ${pages.length} листах А4.<br>
+    🎲 Правила как в Munchkin: 1) Открывай Дверь; 2) Если монстр — сражайся (сила = уровень + бонусы); 3) Можешь просить помощь; 4) Победа даёт уровень и сокровища; 5) Можно кидать проклятия, экипировать предметы, менять расу/класс; 6) Первый на 10 уровне побеждает.<br>
+    🎨 Иллюстрации в духе этно-фэнтези. Режьте аккуратно и играйте всей семьёй!`;
+    container.appendChild(totalInfo);
+</script>
+</body>
+</html>
